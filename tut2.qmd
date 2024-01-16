@@ -1,0 +1,83 @@
+---
+title: "tut2"
+format: pdf
+editor: visual
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# install.packages(c("tidyverse", "opendatatoronto"))
+# install.packages("janitor")
+# install.packages("knitr")
+
+library(opendatatoronto)
+library(tidyverse)
+library(janitor)
+library(knitr)
+
+
+#### Acquire ####
+raw_igme_data <-
+  read_csv(
+    file =
+      "https://childmortality.org/wp-content/uploads/2021/09/UNIGME-2021.csv",
+    show_col_types = FALSE
+  )
+
+write_csv(x = raw_igme_data, file = "igme.csv")
+head(raw_igme_data)
+
+
+```
+
+```{r}
+names(raw_igme_data)
+```
+
+```{r}
+cleaned_igme_data <-
+  clean_names(raw_igme_data) |>
+  filter(
+    sex == "Total",
+    series_name == "UN IGME estimate",
+    geographic_area %in% c("Argentina", "Australia", "Canada", "Kenya"),
+    indicator == "Neonatal mortality rate") |>
+  select(geographic_area, time_period, obs_value)
+
+head(cleaned_igme_data)
+
+
+cleaned_igme_data <-
+  cleaned_igme_data |>
+  mutate(
+    time_period = str_remove(time_period, "-06"),
+    time_period = as.integer(time_period)
+  ) |>
+  filter(time_period >= 1971) |>
+  rename(nmr = obs_value, year = time_period, country = geographic_area)
+
+head(cleaned_igme_data)
+```
+
+```{r}
+write_csv(x = cleaned_igme_data, file = "cleaned_igme_data.csv")
+
+#### Explore ####
+cleaned_igme_data <-
+  read_csv(
+    file = "cleaned_igme_data.csv",
+    show_col_types = FALSE
+  )
+
+head(cleaned_igme_data)
+```
+
+```{r}
+cleaned_igme_data |>
+  ggplot(aes(x = year, y = nmr, color = country)) +
+  geom_point() +
+  theme_minimal() 
+```
